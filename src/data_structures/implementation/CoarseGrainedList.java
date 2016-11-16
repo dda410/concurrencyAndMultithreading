@@ -114,7 +114,9 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
       array.add(h.data);
       h = h.next;
     }
+    // Adding last element of the list to the arraylist
     array.add(h.data);
+    lock.unlock();
   }
 
   // public ArrayList<T> toArrayList() {
