@@ -66,11 +66,11 @@ public class WorkerThread<T extends Comparable<T>> extends Thread {
             // Do some work in between operations. workTime indicates the cpu
             // time to be consumed, in microseconds.
             ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-            long start = bean.getThreadCpuTime(Thread.currentThread().getId());
+            long start = bean.getCurrentThreadCpuTime();
 
             // getThreadCpuTime() returns cpu time in nano seconds.
             long end = start + workTime * 1000;
-            while (bean.getThreadCpuTime(Thread.currentThread().getId()) < end)
+            while ( bean.getCurrentThreadCpuTime() < end )
                 ; // busy until we used enough cpu time.
         }
     }
