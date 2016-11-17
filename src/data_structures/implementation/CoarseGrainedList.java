@@ -73,12 +73,15 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
   @Override
   public void remove(T t) {
     lock.lock();
+    //System.out.println("This is t: " + t.toString());  // dbg to remove
     if(isEmpty()) {
       lock.unlock();
       return;
     }
     Node h = head;
     if(t.compareTo(h.data) == 0) {
+      //System.out.println("Entering the t.compareTo(h.data) == 0");  // dbg to remove
+      //System.out.println(head.next == null);  // dbg to remove
       head = (head.next == null) ? new Node() : head.next;
       lock.unlock();
       return;
@@ -86,12 +89,12 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     Node prior = h;
     while(t.compareTo(h.data) != 0) {
       prior = h;
-      h = h.next;
       // no match was found
       if (h.next == null) {
         lock.unlock();
         return;
       }
+      h = h.next;
     }
     prior.next = h.next;
     lock.unlock();
