@@ -112,6 +112,10 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     lock.lock();
     // can we assume that the list is not empty?
     ArrayList<T> array = new ArrayList<T>();
+    if(isEmpty()) {
+      lock.unlock();
+      return array;
+    }
     Node h = head;
     while(h.next != null) {
       array.add(h.data);
