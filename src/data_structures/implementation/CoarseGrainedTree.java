@@ -1,21 +1,21 @@
 package data_structures.implementation;
 
 import java.util.ArrayList;
-
 import data_structures.Sorted;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   private TreeNode root;
   private ArrayList<T> arrayList;
+  private Lock lock = new ReentrantLock();
 
   public CoarseGrainedTree() {
     root = null;
-    arrayList= new ArrayList<T>();
   }
 	
   public CoarseGrainedTree(TreeNode root) {
     this.root = root;
-    arrayList= new ArrayList<T>();
   }
 	
   private class TreeNode {
@@ -42,10 +42,9 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public void add(T e) {
-    // if(contains(e))  // commented to allow duplicates element stored in the list
-    //   remove(e);
-    // else
-    root = add(root, e);		
+    lock.lock();
+    root = add(root, e);
+    lock.unlock();
   }
 	
   private TreeNode add(TreeNode root, T e) {
@@ -64,9 +63,11 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public void remove(T e) {
+    lock.lock();
     System.out.println("Entering the remove method");
     System.out.println("This is number of nodes: " + numberOfNodes());
-    root = remove(root, e);		
+    root = remove(root, e);
+    lock.unlock();
   }
 	
   private TreeNode remove(TreeNode root, T e) {
@@ -111,8 +112,10 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public ArrayList<T> toArrayList() {
-    arrayList= new ArrayList<T>();
+    lock.lock();
+    arrayList = new ArrayList<T>();
     inOrder(root);
+    lock.unlock();
     return arrayList;
   }
 
