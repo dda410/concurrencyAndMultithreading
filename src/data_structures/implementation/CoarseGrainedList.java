@@ -11,17 +11,17 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
   private Lock lock = new ReentrantLock();
 
   public CoarseGrainedList(){
-    head =  new Node();
+    head = new Node();
   }
 
   private class Node {
     T data;
     Node next;
     public Node(){
-      this(null,null,null);
+      this(null,null);
     }
     public Node(T data) {
-      this(data, null, null);
+      this(data, null);
     }
     public Node(T data, Node next) {
       this.data = data == null ? null : data;
@@ -52,7 +52,7 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
       lock.unlock();
       return;
     }
-    Node prior;
+    Node prior = h;
     while(t.compareTo(h.data) > 0) {
       // The node is inserted at last position if contains the biggest value in the list
       if(h.next == null){
@@ -117,6 +117,7 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     // Adding last element of the list to the arraylist
     array.add(h.data);
     lock.unlock();
+    return array;
   }
 
   // public ArrayList<T> toArrayList() {
