@@ -46,7 +46,8 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     root = add(root, e);
     lock.unlock();
   }
-	
+
+  // Adding a node recursively
   private TreeNode add(TreeNode root, T e) {
     if(root == null)
       return new TreeNode(e);
@@ -64,37 +65,29 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
 
   public void remove(T e) {
     lock.lock();
-    System.out.println("Entering the remove method");
-    System.out.println("This is number of nodes: " + numberOfNodes());
     root = remove(root, e);
     lock.unlock();
   }
-	
+
+  // Removing a node recursively
   private TreeNode remove(TreeNode root, T e) {
-    System.out.println("inside the remove");
     if(root == null) {
-      System.out.println("if(root == null) inside remove");
       throw new Error("The element cannot be removed because it does not exist");
     }
     if(e.compareTo(root.data) < 0) {
-      System.out.println("if(e.compareTo(root.data) < 0");
-      root.left=remove(root.left, e);
+      root.left = remove(root.left, e);
     } else {
       if(e.compareTo(root.data) > 0) {
-        System.out.println("if(e.compareTo(root.data) > 0)");
-        root.right=remove(root.right, e);
+        root.right = remove(root.right, e);
       } else {
         if(root.left == null) {
-          System.out.println("if(root.left==null)");
-          root=root.right;
+          root = root.right;
         } else {
           if(root.right == null) {
-            System.out.println("if(root.right==null)");
-            root=root.left;
+            root = root.left;
           } else {
-            System.out.println("inside last else");
             root.data = minimum(root.right);
-            root.right=remove(root.right, root.data);
+            root.right = remove(root.right, root.data);
           }
         }
       }
@@ -102,6 +95,7 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     return root;
   }
 
+  // Visiting the tree nodes recursively with inorder traversal 
   private void inOrder(TreeNode root){
     if(root == null) {
       return;
@@ -118,29 +112,4 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     lock.unlock();
     return arrayList;
   }
-
-  // To remove
-  public int numberOfNodes() {
-    return numberOfNodes(root);
-  }
-		
-  // To remove	
-  private int numberOfNodes(TreeNode root){
-    if(root==null)
-      return 0;
-    return 1+numberOfNodes(root.left)+numberOfNodes(root.right);
-  }
-  
-
-  // public void add(T t) {
-  //   throw new UnsupportedOperationException();
-  // }
-
-  // public void remove(T t) {
-  //   throw new UnsupportedOperationException();
-  // }
-
-  // public ArrayList<T> toArrayList() {
-  //   throw new UnsupportedOperationException();
-  // }
 }

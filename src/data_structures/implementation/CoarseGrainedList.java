@@ -6,7 +6,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
-
   private Node head;
   private Lock lock = new ReentrantLock();
 
@@ -30,7 +29,7 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public boolean isEmpty() {
-    if(head.next==null && head.data==null) {
+    if(head.next == null && head.data == null) {
       return true;
     }
     return false;
@@ -55,7 +54,7 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     Node prior = h;
     while(t.compareTo(h.data) > 0) {
       // The node is inserted at last position if contains the biggest value in the list
-      if(h.next == null){
+      if(h.next == null) {
         h.next = new Node(t, null);
         lock.unlock();
         return;
@@ -70,18 +69,14 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     return;
   }
 
-  @Override
   public void remove(T t) {
     lock.lock();
-    //System.out.println("This is t: " + t.toString());  // dbg to remove
     if(isEmpty()) {
       lock.unlock();
       return;
     }
     Node h = head;
     if(t.compareTo(h.data) == 0) {
-      //System.out.println("Entering the t.compareTo(h.data) == 0");  // dbg to remove
-      //System.out.println(head.next == null);  // dbg to remove
       head = (head.next == null) ? new Node() : head.next;
       lock.unlock();
       return;
@@ -99,18 +94,9 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     prior.next = h.next;
     lock.unlock();
   }
-  
-  // public void add(T t) {
-  //     throw new UnsupportedOperationException();
-  // }
-
-  // public void remove(T t) {
-  //   throw new UnsupportedOperationException();
-  // }
 
   public ArrayList<T> toArrayList() {
     lock.lock();
-    // can we assume that the list is not empty?
     ArrayList<T> array = new ArrayList<T>();
     if(isEmpty()) {
       lock.unlock();
@@ -126,8 +112,4 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     lock.unlock();
     return array;
   }
-
-  // public ArrayList<T> toArrayList() {
-  //   throw new UnsupportedOperationException();
-  // }
 }
