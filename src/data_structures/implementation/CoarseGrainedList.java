@@ -96,10 +96,8 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public ArrayList<T> toArrayList() {
-    lock.lock();
     ArrayList<T> array = new ArrayList<T>();
     if(isEmpty()) {
-      lock.unlock();
       return array;
     }
     Node h = head;
@@ -109,7 +107,6 @@ public class CoarseGrainedList<T extends Comparable<T>> implements Sorted<T> {
     }
     // Adding last element of the list to the arraylist
     array.add(h.data);
-    lock.unlock();
     return array;
   }
 }

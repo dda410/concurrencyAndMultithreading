@@ -106,10 +106,8 @@ public class CoarseGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public ArrayList<T> toArrayList() {
-    lock.lock();
     arrayList = new ArrayList<T>();
     inOrder(root);
-    lock.unlock();
     return arrayList;
   }
 }
