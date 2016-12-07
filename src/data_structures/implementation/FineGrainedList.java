@@ -40,13 +40,21 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
   public void add(T t) {
     Node x = head;
     x.lock.lock();
+    // Adding head node to empty list.
     if (isEmpty()) {
       head = new Node(t);
       x.lock.unlock();
       return;
     }
+    // Adding as first node.
+    if (x.data != null && t.compareTo(x.data) < 0) {
+      head = new Node(t, x);
+      x.lock.unlock();
+      return;
+    }
     while (x.next != null) {
       x.next.lock.lock();
+      // Adding to intermidiate position.
       if (t.compareTo(x.next.data) < 0) {
         x.next = new Node (t, x.next);
         x.lock.unlock();
@@ -56,6 +64,7 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
       x.lock.unlock();
       x = x.next;
     }
+    // Adding as last node.
     x.next = new Node(t, null);
     x.lock.unlock();
   }
@@ -63,6 +72,7 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
   public void remove(T t) {
     Node x = head;
     x.lock.lock();
+    // Removing first node.
     if (! isEmpty() && t.compareTo(x.data) == 0) {
       head = new Node();
       x.lock.unlock();
@@ -70,6 +80,7 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
     }
     while (x.next != null) {
       x.next.lock.lock();
+      // Removing intermidiate node.
       if (t.compareTo(x.next.data) == 0) {
         Node tmp = x.next;
         x.next = x.next.next;
