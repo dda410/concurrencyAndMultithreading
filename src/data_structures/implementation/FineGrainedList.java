@@ -37,18 +37,6 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
     return false;
   }
 
-  public void lockNode(Node x) {
-    if (x != null) {
-      x.lock.lock();
-    }
-  }
-
-  public void unlockNode(Node x) {
-    if (x != null) {
-      x.lock.unlock();
-    }
-  }
-
   public void add(T o) {
     Node x = head;
     x.lock.lock();
@@ -72,68 +60,27 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
     x.lock.unlock();
   }
 
-  public boolean remove(T o) {
+  public void remove(T o) {
     Node x = head;
     x.lock.lock();
+    if (! isEmpty() && o.compareTo(x.data) == 0) {
+      head = new Node();
+      x.lock.unlock();
+      return;
+    }
     while (x.next != null) {
       x.next.lock.lock();
       if (o.compareTo(x.next.data) == 0) {
-        unlink(x);
-        return true;
+        Node tmp = x.next;
+        x.next = x.next.next;
+        x.lock.unlock();
+        tmp.lock.unlock();
+        return;
       }
       x.lock.unlock();
       x = x.next;
     }
     x.lock.unlock();
-    return false;
-  }
-
-  public void remove2(T t) {
-    Node h = head;
-    h.lock.lock();
-    // Nothing to remove if it is an empty list.
-    if (isEmpty()) {
-      return;
-    }
-    // The head of the list needs to be removed.
-    if (t.compareTo(h.data) == 0) {
-      if (h.next != null) {
-        h.next.lock.lock();
-      }
-      head = (head.next == null) ? new Node() : head.next;
-      if (h.next != null) {
-        h.next.lock.unlock();
-      }
-      h.lock.unlock();
-      return;
-    }
-    Node prior = h;
-    while(t.compareTo(h.data) != 0) {
-      // no match was found
-      if (h.next == null) {
-        if (prior != h) {
-          prior.lock.unlock();
-        }
-        h.lock.unlock();
-        return;
-      }
-      if (prior != h) {
-        prior.lock.unlock();
-      }
-      prior = h;
-      h.next.lock.lock();
-      h = h.next;
-    }
-    // Removing element between other two.
-    if (h.next != null) {
-      h.next.lock.lock();
-    }
-    prior.next = h.next;
-    if (h.next != null) {
-      h.next.lock.unlock();
-    }
-    h.lock.unlock();
-    prior.lock.unlock();
   }
 
   public ArrayList<T> toArrayList() {
