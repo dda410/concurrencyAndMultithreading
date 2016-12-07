@@ -43,7 +43,54 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     return root == null? true : false;
   }
 
-  public void add(T e) {
+  public void add(T data) {
+    System.out.println(data);
+    TreeNode newNode = new TreeNode(data);
+    TreeNode curNode = null;
+    TreeNode parentNode = null;
+    int compare = 0;		
+    // lock.lock();
+    if (root == null) {
+      //The tree is empty, insert the new node as the root
+      root = newNode;
+      // root.lock.unlock();
+    } else {
+      //The tree is not empty, find a location to insert the new node
+      curNode = root;
+      curNode.lock.lock();
+      // curNode.lock();
+      // root.lock.unlock();
+      while (true) {
+        parentNode = curNode;
+        compare = curNode.data.compareTo(data);
+        if (compare > 0) {
+          //curNode is "bigger" than newNode, enter left subtree
+          curNode = curNode.left;
+        } else {
+          //curNode is "smaller" than newNode, enter right subtree
+          curNode = curNode.right;
+        }				
+        //Check to see if we've found our location.  If not, continue
+        //traversing the tree; else, break out of the loop
+        if (curNode == null) {
+          break;
+        } else {
+          curNode.lock.lock();
+          parentNode.lock.unlock();
+        }
+      }
+			
+      //Insert the node into the tree
+      if (compare > 0) {
+        parentNode.left = newNode;
+      } else {
+        parentNode.right = newNode;
+      }
+      parentNode.lock.unlock();
+    }
+  }
+
+  public void add2(T e) {
     root = add(root, e, root);
   }
 
