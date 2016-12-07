@@ -37,49 +37,58 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
     return false;
   }
 
-  public void add(T t) {
-    // System.out.println("\nAdding ...");
-
-    // if the list is empty the node will be inserted as the head one
-    if (isEmpty()) {      	
-      head = new Node(t);
-      return;
+  public void lockNode(Node x) {
+    if (x != null) {
+      x.lock.lock();
     }
-    Node h = head;
-    h.lock.lock();
-    // The node will be inserted as the head if contains the smallest value in the list
-    if (t.compareTo(head.data) <= 0) {
-      head = new Node(t, head);
-      h.lock.unlock();
-      return;
-    }
-    Node prior = h;
-    while (t.compareTo(h.data) > 0) {
-      // The node is inserted at last position if contains the biggest value in the list
-      if(h.next == null) {
-        h.next = new Node(t, null);
-        if (prior != h) {
-          prior.lock.unlock();
-        }
-        h.lock.unlock();
-        return;
-      }
-      if (prior != h) {
-        prior.lock.unlock();
-      }
-      prior = h;
-      h = h.next;
-      h.lock.lock();
-    }
-    // Inserting the node in between two nodes
-    Node newNode = new Node(t, h);
-    prior.next = newNode;
-    prior.lock.unlock();
-    h.lock.unlock();
-    return;
   }
 
-  public void remove(T t) {
+  public void unlockNode(Node x) {
+    if (x != null) {
+      x.lock.unlock();
+    }
+  }
+
+  public void add(T o) {
+    Node x = head;
+    x.lock.lock();
+    if (isEmpty()) {
+      head = new Node(o);
+      x.lock.unlock();
+      return;
+    }
+    while (x.next != null) {
+      x.next.lock.lock();
+      if (o.compareTo(x.next.data) < 0) {
+        x.next = new Node (o, x.next);
+        x.lock.unlock();
+        x.next.next.lock.unlock();
+        return;
+      }
+      x.lock.unlock();
+      x = x.next;
+    }
+    x.next = new Node(o, null);
+    x.lock.unlock();
+  }
+
+  public boolean remove(T o) {
+    Node x = head;
+    x.lock.lock();
+    while (x.next != null) {
+      x.next.lock.lock();
+      if (o.compareTo(x.next.data) == 0) {
+        unlink(x);
+        return true;
+      }
+      x.lock.unlock();
+      x = x.next;
+    }
+    x.lock.unlock();
+    return false;
+  }
+
+  public void remove2(T t) {
     Node h = head;
     h.lock.lock();
     // Nothing to remove if it is an empty list.
@@ -112,8 +121,8 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
         prior.lock.unlock();
       }
       prior = h;
+      h.next.lock.lock();
       h = h.next;
-      h.lock.lock();
     }
     // Removing element between other two.
     if (h.next != null) {
