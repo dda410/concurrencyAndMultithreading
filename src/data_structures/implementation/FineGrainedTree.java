@@ -9,6 +9,7 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
 
   private TreeNode root;
   private ArrayList<T> arrayList;
+  private Lock totalLock = new ReentrantLock();
 
   public FineGrainedTree() {
     root = null;
@@ -48,17 +49,17 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     TreeNode curNode = null;
     TreeNode parentNode = null;
     int compare = 0;		
-    // lock.lock();
+    totalLock.lock();
     if (root == null) {  // maybe call this empty method.
       //The tree is empty, insert the new node as the root
       root = newNode;
-      // root.lock.unlock();
+      totalLock.unlock();
     } else {
       //The tree is not empty, find a location to insert the new node
       curNode = root;
       curNode.lock.lock();
       // curNode.lock();
-      // root.lock.unlock();
+      totalLock.unlock();
       while (true) {
         parentNode = curNode;
         compare = curNode.data.compareTo(data);
@@ -160,7 +161,7 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     TreeNode parentNode = null;
     int compare = 0;
     int oldCompare = 0;		
-    // headLock.lock();
+    totalLock.lock();
     if(root != null) {
       //Tree is not empty, search for the passed data.  Start by checking
       //the root separately.
@@ -185,11 +186,11 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
           replacement.right = curNode.right;
         }				
         curNode.lock.unlock();
-        // headLock.unlock();
+        totalLock.unlock();
         return;
       }
       curNode.lock.lock();
-      // headLock.unlock();
+      totalLock.unlock();
 			
       while(true) {
         compare = curNode.data.compareTo(data);
