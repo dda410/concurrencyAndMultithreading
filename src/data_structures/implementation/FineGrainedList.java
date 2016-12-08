@@ -56,9 +56,10 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
       x.next.lock.lock();
       // Adding to intermidiate position.
       if (t.compareTo(x.next.data) < 0) {
-        x.next = new Node (t, x.next);
+        Node tmp = x.next;
+        x.next = new Node (t, tmp);
         x.lock.unlock();
-        x.next.next.lock.unlock();
+        tmp.lock.unlock();
         return;
       }
       x.lock.unlock();
