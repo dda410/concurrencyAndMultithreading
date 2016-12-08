@@ -142,28 +142,21 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public void remove(T data) {		
-    TreeNode curNode = null;
-    TreeNode parentNode = null;
+    TreeNode curNode = null, parentNode = null;
     int compare = 0;
-    int oldCompare = 0;		
     totalLock.lock();
-    if(root != null) {
-      //Tree is not empty, search for the passed data.  Start by checking
-      //the root separately.
+    if(root == null) {
+      totalLock.unlock();
+      return;
+    }
       curNode = root;
       parentNode = curNode;
       curNode.lock.lock();
-      compare = curNode.data.compareTo(data);
-      if(compare > 0) {
-        //root is "bigger" than passed data, search the left subtree
+      if(curNode.data.compareTo(data) > 0) { // Visiting left subtree.
         curNode = curNode.left;
-        oldCompare = compare;
-      } else if(compare < 0) {
-        //root is "smaller" than passed data, search the right subtree
+      } else if(curNode.data.compareTo(data) < 0) { // Visiting right subtree.
         curNode = curNode.right;
-        oldCompare = compare;
       } else {
-        //Found the specified data, remove it from the tree
         TreeNode replacement = findReplacement(curNode);				
         root = replacement;
         if(replacement != null) {
@@ -177,33 +170,16 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
       curNode.lock.lock();
       totalLock.unlock();
 			
-      while(true) {
-        compare = curNode.data.compareTo(data);
-        if(compare != 0) {
-          parentNode.lock.unlock();
-          parentNode = curNode;
-          if(compare > 0) {
-            //curNode is "bigger" than passed data, search the left
-            //subtree
-            curNode = curNode.left;
-            oldCompare = compare;
-          } else if(compare < 0) {
-            //curNode is "smaller" than passed data, search the right
-            //subtree
-            curNode = curNode.right;
-            oldCompare = compare;
-          }
-        } else {
-          //Found the specified data, remove it from the tree
+      while(curNode != null) { // Exits if no match is found.
+        if (curNode.data.compareTo(data) == 0) {  // A match was found. 
           TreeNode replacement = findReplacement(curNode);
-					
-          //Set the parent pointer to the new child
-          if (oldCompare > 0) {
+          // Setting parent pointers
+          if (parentNode.data.compareTo(data) > 0) {
             parentNode.left = replacement;
           } else {
             parentNode.right = replacement;
-          }					
-          //Replace curNode with replacement
+          }
+          // Setting replacement node pointers.
           if (replacement != null) {
             replacement.left = curNode.left;
             replacement.right = curNode.right;
@@ -211,22 +187,19 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
           curNode.lock.unlock();
           parentNode.lock.unlock();
           return;
-        }
-				
-        if (curNode == null) {
-          break;
-        } else {
+        }        
+        parentNode.lock.unlock();
+        parentNode = curNode;
+        if(curNode.data.compareTo(data) > 0) { //  Visiting left subtree.
+          curNode = curNode.left;
+        } else if(curNode.data.compareTo(data) < 0) {  // Visiting right subtree
+          curNode = curNode.right;
+        }      
+        if (curNode != null) {
           curNode.lock.lock();
         }
-      } // closing the while
-    } else {
-      // Tree is empty
-      // headLock.unlock();
-      return;
-    }
-		
-    //The specified data was not in the tree
-    parentNode.lock.unlock();
+      } // closing the while		
+      parentNode.lock.unlock();
   }
 
   // Visiting the tree nodes recursively with inorder traversal 
