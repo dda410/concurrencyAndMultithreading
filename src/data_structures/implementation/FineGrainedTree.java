@@ -45,49 +45,34 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   }
 
   public void add(T data) {
-    TreeNode newNode = new TreeNode(data);
-    TreeNode curNode = null;
-    TreeNode parentNode = null;
-    int compare = 0;		
+    TreeNode curNode = null, parentNode = null;
     totalLock.lock();
-    if (root == null) {  // maybe call this empty method.
-      //The tree is empty, insert the new node as the root
-      root = newNode;
+    if (root == null) {  // Empty tree, inserting the node as root.
+      root = new TreeNode(data);;
       totalLock.unlock();
-    } else {
-      //The tree is not empty, find a location to insert the new node
-      curNode = root;
-      curNode.lock.lock();
-      // curNode.lock();
-      totalLock.unlock();
-      while (true) {
-        parentNode = curNode;
-        compare = curNode.data.compareTo(data);
-        if (compare > 0) {
-          //curNode is "bigger" than newNode, enter left subtree
-          curNode = curNode.left;
-        } else {
-          //curNode is "smaller" than newNode, enter right subtree
-          curNode = curNode.right;
-        }				
-        //Check to see if we've found our location.  If not, continue
-        //traversing the tree; else, break out of the loop
-        if (curNode == null) {
-          break;
-        } else {
-          curNode.lock.lock();
-          parentNode.lock.unlock();
-        }
-      }
-			
-      //Insert the node into the tree
-      if (compare > 0) {
-        parentNode.left = newNode;
-      } else {
-        parentNode.right = newNode;
-      }
-      parentNode.lock.unlock();
+      return;
     }
+    curNode = root;
+    curNode.lock.lock();
+    totalLock.unlock();
+    while (curNode != null) {
+      parentNode = curNode;
+      if (curNode.data.compareTo(data) > 0) {  // Visiting left subtree.
+        curNode = curNode.left;
+      } else {  // Visiting right subtree.
+        curNode = curNode.right;
+      }				
+      if (curNode != null) {
+        curNode.lock.lock();
+        parentNode.lock.unlock();
+      }
+    }			
+    if (parentNode.data.compareTo(data) > 0) {
+      parentNode.left = new TreeNode(data);
+    } else {
+      parentNode.right = new TreeNode(data);
+    }
+    parentNode.lock.unlock();
   }
 
 
