@@ -40,171 +40,157 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     }
   }
 
-  public boolean isEmpty(){
-    return root == null? true : false;
-  }
-
   public void add(T data) {
-    TreeNode curNode = null, parentNode = null;
+    TreeNode current = null, parent = null;
     totalLock.lock();
     if (root == null) {  // Empty tree, inserting the node as root.
       root = new TreeNode(data);;
       totalLock.unlock();
       return;
     }
-    curNode = root;
-    curNode.lock.lock();
+    current = root;
+    current.lock.lock();
     totalLock.unlock();
-    while (curNode != null) {
-      parentNode = curNode;
-      if (curNode.data.compareTo(data) > 0) {  // Visiting left subtree.
-        curNode = curNode.left;
+    while (current != null) {
+      parent = current;
+      if (current.data.compareTo(data) > 0) {  // Visiting left subtree.
+        current = current.left;
       } else {  // Visiting right subtree.
-        curNode = curNode.right;
+        current = current.right;
       }				
-      if (curNode != null) {
-        curNode.lock.lock();
-        parentNode.lock.unlock();
+      if (current != null) {
+        current.lock.lock();
+        parent.lock.unlock();
       }
     }			
-    if (parentNode.data.compareTo(data) > 0) {
-      parentNode.left = new TreeNode(data);
+    if (parent.data.compareTo(data) > 0) {
+      parent.left = new TreeNode(data);
     } else {
-      parentNode.right = new TreeNode(data);
+      parent.right = new TreeNode(data);
     }
-    parentNode.lock.unlock();
+    parent.lock.unlock();
   }
 
-
-
-
   private TreeNode findReplacement(TreeNode subRoot) {		
-    TreeNode curNode = null;
-    TreeNode parentNode = null;
-    
-    if(subRoot.left != null) {
-      //Find the "biggest" node in the left subtree as the replacement
-      parentNode = subRoot;
-      curNode = subRoot.left;
-      curNode.lock.lock();
-      while(curNode.right != null) {
-        if(parentNode != subRoot) {
-          parentNode.lock.unlock();
+    TreeNode current = null, parent = subRoot;
+    if (subRoot.left != null) {  // Visiting the left subtree.
+      current = subRoot.left;
+      current.lock.lock();
+      while (current.right != null) {  // Exits when the biggest node in the subtree is found.
+        if(parent != subRoot) {
+          parent.lock.unlock();
         }
-        parentNode = curNode;
-        curNode = curNode.right;
-        curNode.lock.lock();
+        parent = current;
+        current = current.right;
+        current.lock.lock();
       }
-      if (curNode.left != null) {
-        curNode.left.lock.lock();
+      // Setting pointers to remove replacement.
+      if (current.left != null) {
+        current.left.lock.lock();
       }
-      if (parentNode == subRoot) {
-        parentNode.left = curNode.left;
+      if (parent == subRoot) {
+        parent.left = current.left;
       } else {
-        parentNode.right = curNode.left;
-        parentNode.lock.unlock();
+        parent.right = current.left;
+        parent.lock.unlock();
       }
-      if (curNode.left != null) {
-        curNode.left.lock.unlock();
+      if (current.left != null) {
+        current.left.lock.unlock();
       }
-      curNode.lock.unlock();
-    } else if (subRoot.right != null) {
-      //Find the "smallest" node in the right subtree as the replacement
-      parentNode = subRoot;
-      curNode = subRoot.right;
-      curNode.lock.lock();
-      while (curNode.left != null) {
-        if(parentNode != subRoot) {
-          parentNode.lock.unlock();
+    } else if (subRoot.right != null) {  // Visiting the right subtree.
+      current = subRoot.right;
+      current.lock.lock();
+      while (current.left != null) {  // Exits when the smallest node in the subtree is found.
+        if (parent != subRoot) {
+          parent.lock.unlock();
         }
-        parentNode = curNode;
-        curNode = curNode.left;
-        curNode.lock.lock();
+        parent = current;
+        current = current.left;
+        current.lock.lock();
       }
-      if(curNode.right != null) {
-        curNode.right.lock.lock();
+      // Setting pointers to remove replacement.
+      if (current.right != null) {
+        current.right.lock.lock();
       }
-      if(parentNode == subRoot)
-        parentNode.right = curNode.right;
+      if (parent == subRoot)
+        parent.right = current.right;
       else {
-        parentNode.left = curNode.right;
-        parentNode.lock.unlock();
+        parent.left = current.right;
+        parent.lock.unlock();
       }
-      if(curNode.right != null) {
-        curNode.right.lock.unlock();
+      if (current.right != null) {
+        current.right.lock.unlock();
       }
-      curNode.lock.unlock();
-    } else {
-      //No children, no replacement needed
+    } else {  // No children.
       return null;
     }
-    return curNode;
+    current.lock.unlock();
+    return current;
   }
 
   public void remove(T data) {		
-    TreeNode curNode = null, parentNode = null;
+    TreeNode current = null, parent = null;
     int compare = 0;
     totalLock.lock();
-    if(root == null) {
+    if (root == null) {
       totalLock.unlock();
       return;
     }
-      curNode = root;
-      parentNode = curNode;
-      curNode.lock.lock();
-      if(curNode.data.compareTo(data) > 0) { // Visiting left subtree.
-        curNode = curNode.left;
-      } else if(curNode.data.compareTo(data) < 0) { // Visiting right subtree.
-        curNode = curNode.right;
-      } else {
-        TreeNode replacement = findReplacement(curNode);				
-        root = replacement;
-        if(replacement != null) {
-          replacement.left = curNode.left;
-          replacement.right = curNode.right;
-        }				
-        curNode.lock.unlock();
-        totalLock.unlock();
-        return;
-      }
-      curNode.lock.lock();
+    // The root is removed separately since it has no parent node.
+    parent = current = root;
+    current.lock.lock();
+    if (current.data.compareTo(data) > 0) { // Visiting left subtree.
+      current = current.left;
+    } else if (current.data.compareTo(data) < 0) { // Visiting right subtree.
+      current = current.right;
+    } else {
+      TreeNode replacement = findReplacement(current);				
+      root = replacement;
+      if (replacement != null) { // Setting replacement node pointers.
+        replacement.left = current.left;
+        replacement.right = current.right;
+      }				
+      current.lock.unlock();
       totalLock.unlock();
-			
-      while(curNode != null) { // Exits if no match is found.
-        if (curNode.data.compareTo(data) == 0) {  // A match was found. 
-          TreeNode replacement = findReplacement(curNode);
-          // Setting parent pointers
-          if (parentNode.data.compareTo(data) > 0) {
-            parentNode.left = replacement;
-          } else {
-            parentNode.right = replacement;
-          }
-          // Setting replacement node pointers.
-          if (replacement != null) {
-            replacement.left = curNode.left;
-            replacement.right = curNode.right;
-          }					
-          curNode.lock.unlock();
-          parentNode.lock.unlock();
-          return;
-        }        
-        parentNode.lock.unlock();
-        parentNode = curNode;
-        if(curNode.data.compareTo(data) > 0) { //  Visiting left subtree.
-          curNode = curNode.left;
-        } else if(curNode.data.compareTo(data) < 0) {  // Visiting right subtree
-          curNode = curNode.right;
-        }      
-        if (curNode != null) {
-          curNode.lock.lock();
+      return;
+    }
+    current.lock.lock();
+    totalLock.unlock();			
+    while (current != null) { // Exits if no match is found.
+      if (current.data.compareTo(data) == 0) {  // A match is found. 
+        TreeNode replacement = findReplacement(current);
+        // Setting parent pointers.
+        if (parent.data.compareTo(data) > 0) {
+          parent.left = replacement;
+        } else {
+          parent.right = replacement;
         }
-      } // closing the while		
-      parentNode.lock.unlock();
+        // Setting replacement node pointers.
+        if (replacement != null) {
+          replacement.left = current.left;
+          replacement.right = current.right;
+        }					
+        current.lock.unlock();
+        parent.lock.unlock();
+        return;
+      }        
+      parent.lock.unlock();
+      parent = current;
+      if (current.data.compareTo(data) > 0) { //  Visiting left subtree.
+        current = current.left;
+      } else if (current.data.compareTo(data) < 0) {  // Visiting right subtree
+        current = current.right;
+      }      
+      if (current != null) {
+        current.lock.lock();
+      }
+    }		
+    parent.lock.unlock();
   }
 
   // Visiting the tree nodes recursively with inorder traversal 
   private void inOrder(TreeNode root){
-    if(root == null) {
+    if (root == null) {
       return;
     }
     inOrder(root.left);
