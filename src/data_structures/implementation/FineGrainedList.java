@@ -40,59 +40,70 @@ public class FineGrainedList<T extends Comparable<T>> implements Sorted<T> {
   public void add(T t) {
     Node x = head;
     x.lock.lock();
-    // Adding head node to empty list.
-    if (isEmpty()) {
-      head = new Node(t);
-      x.lock.unlock();
-      return;
-    }
-    // Adding as first node.
-    if (x.data != null && t.compareTo(x.data) < 0) {
-      head = new Node(t, x);
-      x.lock.unlock();
-      return;
-    }
-    while (x.next != null) {
-      x.next.lock.lock();
-      // Adding to intermidiate position.
-      if (t.compareTo(x.next.data) < 0) {
-        Node tmp = x.next;
-        x.next = new Node (t, tmp);
-        x.lock.unlock();
-        tmp.lock.unlock();
+    try {
+      // Adding head node to empty list.
+      if (isEmpty()) {
+        head = new Node(t);
         return;
       }
+      // Adding as first node.
+      if (x.data != null && t.compareTo(x.data) < 0) {
+        head = new Node(t, x);
+        return;
+      }
+      Node nextNode = null;
+      while (x.next != null) {
+        nextNode = x.next;
+        nextNode.lock.lock();
+        try {
+          // Adding to intermidiate position.
+          if (t.compareTo(nextNode.data) < 0) {
+            x.next = new Node (t, nextNode);
+            return;
+          }
+          x.lock.unlock();
+          x = nextNode;
+        } finally {
+          if (x != nextNode)
+            nextNode.lock.unlock();
+        }
+      }
+      // Adding as last node.
+      x.next = new Node(t, null);
+    } finally {
       x.lock.unlock();
-      x = x.next;
     }
-    // Adding as last node.
-    x.next = new Node(t, null);
-    x.lock.unlock();
   }
 
   public void remove(T t) {
     Node x = head;
     x.lock.lock();
-    // Removing first node.
-    if (! isEmpty() && t.compareTo(x.data) == 0) {
-      head = new Node();
-      x.lock.unlock();
-      return;
-    }
-    while (x.next != null) {
-      x.next.lock.lock();
-      // Removing intermidiate node.
-      if (t.compareTo(x.next.data) == 0) {
-        Node tmp = x.next;
-        x.next = x.next.next;
-        x.lock.unlock();
-        tmp.lock.unlock();
+    try {
+      // Removing first node.
+      if (! isEmpty()) {
+        head = new Node();
         return;
       }
+      Node nextNode = null;
+      while (x.next != null) {
+        nextNode = x.next;
+        nextNode.lock.lock();
+        try {
+          // Removing intermidiate node.
+          if (t.compareTo(nextNode.data) == 0) {
+            x.next = x.next.next;
+            return;
+          }
+          x.lock.unlock();
+          x = nextNode;
+        } finally {
+          if (x != nextNode)
+            nextNode.lock.unlock();
+        }
+      }
+    } finally {
       x.lock.unlock();
-      x = x.next;
     }
-    x.lock.unlock();
   }
 
   public ArrayList<T> toArrayList() {
