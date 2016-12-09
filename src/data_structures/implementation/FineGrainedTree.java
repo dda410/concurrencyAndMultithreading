@@ -99,15 +99,18 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
         if (current.left != null) {
           current.left.lock.lock();
         }
-        if (parent == subRoot) {
-          parent.left = current.left;
-        } else {
-          parent.right = current.left;
+        try {
+          if (parent == subRoot) {
+            parent.left = current.left;
+          } else {
+            parent.right = current.left;
+          }
+        } finally {
+          if (current.left != null) {
+            current.left.lock.unlock();
+          }
         }
       } finally {
-        if (current.left != null) {
-          current.left.lock.unlock();
-        }
         if (parent != subRoot && parent != current) {
           parent.lock.unlock();
         }
@@ -129,15 +132,18 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
         if (current.right != null) {
           current.right.lock.lock();
         }
-        if (parent == subRoot)
-          parent.right = current.right;
-        else {
-          parent.left = current.right;
+        try {
+          if (parent == subRoot)
+            parent.right = current.right;
+          else {
+            parent.left = current.right;
+          }
+        } finally {
+          if (current.right != null) {
+            current.right.lock.unlock();
+          }
         }
       } finally {
-        if (current.right != null) {
-          current.right.lock.unlock();
-        }
         if (parent != subRoot && parent != current) {
           parent.lock.unlock();
         }
