@@ -209,7 +209,7 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
         parent = current;
         if (current.data.compareTo(data) > 0) { //  Visiting left subtree.
           current = current.left;
-        } else if (current.data.compareTo(data) < 0) {  // Visiting right subtree
+        } else {  // Visiting right subtree
           current = current.right;
         }      
         if (current != null) {
