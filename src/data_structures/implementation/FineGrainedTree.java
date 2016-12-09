@@ -54,7 +54,7 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     current = root;
     current.lock.lock();
     try {
-      while (current != null) {
+      while (current != null) {  // Exits when tree leafs level is reached.
         parent = current;
         if (current.data.compareTo(data) > 0) {  // Visiting left subtree.
           current = current.left;
@@ -86,55 +86,66 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     if (subRoot.left != null) {  // Visiting the left subtree.
       current = subRoot.left;
       current.lock.lock();
-      while (current.right != null) {  // Exits when the biggest node in the subtree is found.
-        if(parent != subRoot) {
+      try {
+        while (current.right != null) {  // Exits when the biggest node in the subtree is found.
+          if(parent != subRoot) {
+            parent.lock.unlock();
+          }
+          parent = current;
+          current = current.right;
+          current.lock.lock();
+        }
+        // Setting pointers to remove replacement.
+        if (current.left != null) {
+          current.left.lock.lock();
+        }
+        if (parent == subRoot) {
+          parent.left = current.left;
+        } else {
+          parent.right = current.left;
+        }
+      } finally {
+        if (current.left != null) {
+          current.left.lock.unlock();
+        }
+        if (parent != subRoot && parent != current) {
           parent.lock.unlock();
         }
-        parent = current;
-        current = current.right;
-        current.lock.lock();
-      }
-      // Setting pointers to remove replacement.
-      if (current.left != null) {
-        current.left.lock.lock();
-      }
-      if (parent == subRoot) {
-        parent.left = current.left;
-      } else {
-        parent.right = current.left;
-        parent.lock.unlock();
-      }
-      if (current.left != null) {
-        current.left.lock.unlock();
+        current.lock.unlock();
       }
     } else if (subRoot.right != null) {  // Visiting the right subtree.
       current = subRoot.right;
       current.lock.lock();
-      while (current.left != null) {  // Exits when the smallest node in the subtree is found.
-        if (parent != subRoot) {
+      try {
+        while (current.left != null) {  // Exits when the smallest node in the subtree is found.
+          if (parent != subRoot) {
+            parent.lock.unlock();
+          }
+          parent = current;
+          current = current.left;
+          current.lock.lock();
+        }
+        // Setting pointers to remove replacement.
+        if (current.right != null) {
+          current.right.lock.lock();
+        }
+        if (parent == subRoot)
+          parent.right = current.right;
+        else {
+          parent.left = current.right;
+        }
+      } finally {
+        if (current.right != null) {
+          current.right.lock.unlock();
+        }
+        if (parent != subRoot && parent != current) {
           parent.lock.unlock();
         }
-        parent = current;
-        current = current.left;
-        current.lock.lock();
-      }
-      // Setting pointers to remove replacement.
-      if (current.right != null) {
-        current.right.lock.lock();
-      }
-      if (parent == subRoot)
-        parent.right = current.right;
-      else {
-        parent.left = current.right;
-        parent.lock.unlock();
-      }
-      if (current.right != null) {
-        current.right.lock.unlock();
-      }
+        current.lock.unlock();
+      }     
     } else {  // No children.
       return null;
     }
-    current.lock.unlock();
     return current;
   }
 
