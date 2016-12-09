@@ -43,32 +43,42 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
   public void add(T data) {
     TreeNode current = null, parent = null;
     totalLock.lock();
-    if (root == null) {  // Empty tree, inserting the node as root.
-      root = new TreeNode(data);;
+    try {
+      if (root == null) {  // Empty tree, inserting the node as root.
+        root = new TreeNode(data);;
+        return;
+      }
+    } finally {
       totalLock.unlock();
-      return;
     }
     current = root;
     current.lock.lock();
-    totalLock.unlock();
-    while (current != null) {
-      parent = current;
-      if (current.data.compareTo(data) > 0) {  // Visiting left subtree.
-        current = current.left;
-      } else {  // Visiting right subtree.
-        current = current.right;
-      }				
-      if (current != null) {
-        current.lock.lock();
+    try {
+      while (current != null) {
+        parent = current;
+        if (current.data.compareTo(data) > 0) {  // Visiting left subtree.
+          current = current.left;
+        } else {  // Visiting right subtree.
+          current = current.right;
+        }				
+        if (current != null) {
+          current.lock.lock();
+          parent.lock.unlock();
+        }
+      }			
+      if (parent.data.compareTo(data) > 0) {
+        parent.left = new TreeNode(data);
+      } else {
+        parent.right = new TreeNode(data);
+      }
+    } finally {
+      if (current != parent && current != null) {
+        current.lock.unlock();
+        parent.lock.unlock();
+      } else {
         parent.lock.unlock();
       }
-    }			
-    if (parent.data.compareTo(data) > 0) {
-      parent.left = new TreeNode(data);
-    } else {
-      parent.right = new TreeNode(data);
     }
-    parent.lock.unlock();
   }
 
   private TreeNode findReplacement(TreeNode subRoot) {		
@@ -132,60 +142,71 @@ public class FineGrainedTree<T extends Comparable<T>> implements Sorted<T> {
     TreeNode current = null, parent = null;
     int compare = 0;
     totalLock.lock();
-    if (root == null) {
-      totalLock.unlock();
-      return;
-    }
-    // The root is removed separately since it has no parent node.
-    parent = current = root;
-    current.lock.lock();
-    if (current.data.compareTo(data) > 0) { // Visiting left subtree.
-      current = current.left;
-    } else if (current.data.compareTo(data) < 0) { // Visiting right subtree.
-      current = current.right;
-    } else {
-      TreeNode replacement = findReplacement(current);				
-      root = replacement;
-      if (replacement != null) { // Setting replacement node pointers.
-        replacement.left = current.left;
-        replacement.right = current.right;
-      }				
-      current.lock.unlock();
-      totalLock.unlock();
-      return;
-    }
-    current.lock.lock();
-    totalLock.unlock();			
-    while (current != null) { // Exits if no match is found.
-      if (current.data.compareTo(data) == 0) {  // A match is found. 
-        TreeNode replacement = findReplacement(current);
-        // Setting parent pointers.
-        if (parent.data.compareTo(data) > 0) {
-          parent.left = replacement;
+    try {
+      if (root == null) {
+        return;
+      }
+      // The root is removed separately since it has no parent node.
+      parent = current = root;
+      current.lock.lock();
+      try {
+        if (current.data.compareTo(data) > 0) { // Visiting left subtree.
+          current = current.left;
+        } else if (current.data.compareTo(data) < 0) { // Visiting right subtree.
+          current = current.right;
         } else {
-          parent.right = replacement;
+          TreeNode replacement = findReplacement(current);				
+          root = replacement;
+          if (replacement != null) { // Setting replacement node pointers.
+            replacement.left = current.left;
+            replacement.right = current.right;
+          }				
+          return;
         }
-        // Setting replacement node pointers.
-        if (replacement != null) {
-          replacement.left = current.left;
-          replacement.right = current.right;
-        }					
+      } finally {
+        if (current != parent.left && current != parent.right)
+          current.lock.unlock();
+      }
+    } finally {
+      totalLock.unlock();	
+    }
+    current.lock.lock();  // Locking left or right child of root.
+    try {
+      while (current != null) { // Exits if no match is found.
+        if (current.data.compareTo(data) == 0) {  // A match is found. 
+          TreeNode replacement = findReplacement(current);
+          // Setting parent pointers.
+          if (parent.data.compareTo(data) > 0) {
+            parent.left = replacement;
+          } else {
+            parent.right = replacement;
+          }
+          // Setting replacement node pointers.
+          if (replacement != null) {
+            replacement.left = current.left;
+            replacement.right = current.right;
+          }					
+          return;
+        }        
+        parent.lock.unlock();
+        parent = current;
+        if (current.data.compareTo(data) > 0) { //  Visiting left subtree.
+          current = current.left;
+        } else if (current.data.compareTo(data) < 0) {  // Visiting right subtree
+          current = current.right;
+        }      
+        if (current != null) {
+          current.lock.lock();
+        }
+      }
+    } finally {
+      if (current != parent) {
         current.lock.unlock();
         parent.lock.unlock();
-        return;
-      }        
-      parent.lock.unlock();
-      parent = current;
-      if (current.data.compareTo(data) > 0) { //  Visiting left subtree.
-        current = current.left;
-      } else if (current.data.compareTo(data) < 0) {  // Visiting right subtree
-        current = current.right;
-      }      
-      if (current != null) {
-        current.lock.lock();
+      } else {
+        current.lock.unlock();
       }
-    }		
-    parent.lock.unlock();
+    }
   }
 
   // Visiting the tree nodes recursively with inorder traversal 
